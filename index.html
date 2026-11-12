@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Виш-лист</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F4F4;
+    --ink:#101010;
+    --muted:#6b6d72;
+    --card:#e9e9e9;
+    --accent:#0038FF;
+    --frame:1.5px solid var(--ink);
+    --pad:16px;
+    --side-w:240px;
+    --sans:"Roboto Flex",Arial,sans-serif;
+    --serif:"Fraunces",Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-variation-settings:"wdth" 100,"wght" 420;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  img{display:block;max-width:100%}
+  button{font:inherit;color:inherit}
+
+  /* ================= левое меню в рамке ================= */
+  aside{
+    position:fixed;top:var(--pad);left:var(--pad);bottom:var(--pad);width:var(--side-w);
+    border:var(--frame);display:flex;flex-direction:column;background:var(--bg);z-index:5
+  }
+  aside > section{border-bottom:var(--frame)}
+  aside > section:last-child{border-bottom:0}
+
+  .logo{
+    height:140px;flex:none;display:flex;align-items:center;justify-content:center;
+    text-transform:uppercase;font-size:15px;letter-spacing:.02em;
+    font-variation-settings:"wdth" 100,"wght" 420
+  }
+
+  .menu,.box{flex:1 1 0;min-height:0;overflow:auto;display:flex;flex-direction:column;justify-content:center;align-items:center}
+  .menu,.box{padding:16px}
+  .item{
+    appearance:none;background:none;border:0;padding:3px 0;cursor:pointer;
+    text-transform:uppercase;font-size:15px;letter-spacing:.02em;line-height:1.3;
+    font-variation-settings:"wdth" 100,"wght" 420;transition:font-variation-settings .25s,color .2s;
+    display:inline-flex;gap:6px;align-items:baseline;text-align:left
+  }
+  .item sup{font-size:10px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 420}
+  .item:hover{font-variation-settings:"wdth" 100,"wght" 680}
+  .item[aria-pressed="true"]{color:var(--accent);font-variation-settings:"wdth" 100,"wght" 680}
+  .item[aria-pressed="true"] sup{color:var(--accent)}
+  .item:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+  .box > .opts{display:flex;flex-direction:column;align-items:center}
+
+  .foot{flex:none;padding:16px;text-align:center;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+
+  /* ================= карточки справа ================= */
+  main{margin-left:calc(var(--side-w) + var(--pad)*2);padding:var(--pad) var(--pad) 80px 8px}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:56px 16px}
+
+  .card{display:block;min-width:0;text-decoration:none;position:relative;animation:in .5s both}
+  @keyframes in{from{opacity:0;transform:translateY(14px)}}
+  .ph{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--card)}
+  .ph img{width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+  .card:hover .ph img{transform:scale(1.035)}
+  .cap{padding-top:12px;text-transform:uppercase;font-size:15px;line-height:1.35;letter-spacing:.02em}
+  .cap .t{display:block;color:var(--muted);font-size:13px;margin-bottom:4px;transition:color .2s}
+  .cap .p{display:block}
+  .cap .l{display:inline-block;margin-top:2px;transition:color .2s}
+  .cap .nw{white-space:nowrap}
+  .cap .l svg{display:inline-block;width:11px;height:11px;margin-left:4px;vertical-align:-1px;transition:transform .25s}
+  .card:hover .l{color:var(--accent)}
+  .card:hover .l svg{transform:translate(2px,-2px)}
+
+  .del{
+    position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:0;
+    background:rgba(255,255,255,.9);cursor:pointer;font-size:18px;line-height:1;opacity:0;transition:opacity .2s;z-index:2
+  }
+  .card:hover .del,.del:focus-visible{opacity:1}
+
+  /* карточка «добавить желание» */
+  .add{appearance:none;background:none;border:0;padding:0;text-align:left;cursor:pointer;width:100%;align-self:start;font:inherit}
+  .add .ph{border:var(--frame);background:transparent;display:grid;place-items:center;transition:background .25s}
+  .add .plus{position:relative;width:64px;height:64px;transition:transform .4s cubic-bezier(.2,.7,.2,1)}
+  .add .plus::before,.add .plus::after{content:"";position:absolute;background:var(--ink);transition:background .25s}
+  .add .plus::before{left:50%;top:0;bottom:0;width:2px;margin-left:-1px}
+  .add .plus::after{top:50%;left:0;right:0;height:2px;margin-top:-1px}
+  .add:hover .ph{background:var(--accent)}
+  .add:hover .plus{transform:rotate(90deg)}
+  .add:hover .plus::before,.add:hover .plus::after{background:#fff}
+  .add:hover .p{color:var(--accent)}
+  .add:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+
+  .empty{grid-column:2 / -1;align-self:center;font-family:var(--serif);font-style:italic;font-size:28px;color:var(--muted)}
+
+  /* ================= форма ================= */
+  dialog{
+    border:var(--frame);border-radius:0;padding:0;width:min(520px,calc(100vw - 32px));
+    background:var(--bg);color:var(--ink)
+  }
+  dialog::backdrop{background:rgba(16,16,16,.35);backdrop-filter:blur(3px)}
+  .dhead{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:var(--frame)}
+  .dhead h2{margin:0;font-family:var(--serif);font-style:italic;font-weight:400;font-size:30px;font-variation-settings:"opsz" 72,"wght" 380}
+  .x{appearance:none;background:none;border:0;font-size:26px;cursor:pointer;line-height:1}
+  form{padding:20px;display:grid;gap:14px}
+  label{display:grid;gap:6px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+  input,select{
+    font:inherit;font-size:16px;text-transform:none;letter-spacing:0;color:var(--ink);
+    border:0;border-bottom:var(--frame);background:transparent;padding:6px 0;border-radius:0
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .more{display:none;gap:14px}
+  .more.on{display:grid}
+  .status{margin:-6px 0 0;font-size:13px;color:var(--muted);min-height:1em}
+  .status:empty{display:none}
+  .photo{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:end}
+  .preview{width:96px;aspect-ratio:4/5;background:var(--card);background-size:cover;background-position:center;border:1px solid #ddd}
+  .photo input[type=file]{border:0;font-size:13px;padding:0}
+  .want{display:flex;gap:6px}
+  .want input{position:absolute;opacity:0;pointer-events:none}
+  .want span{width:34px;height:34px;border:var(--frame);display:grid;place-items:center;font-size:14px;color:var(--ink);cursor:pointer;transition:background .15s,color .15s}
+  .want input:checked + span{background:var(--accent);border-color:var(--accent);color:#fff}
+  .want input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+  .submit{
+    appearance:none;border:0;background:var(--ink);color:var(--bg);padding:14px;margin-top:6px;cursor:pointer;
+    text-transform:uppercase;letter-spacing:.04em;font-size:14px;font-variation-settings:"wdth" 100,"wght" 600;transition:background .2s
+  }
+  .submit:hover{background:var(--accent)}
+  .note{margin:0;font-size:12px;color:var(--muted)}
+
+  /* ================= адаптив ================= */
+  @media (max-width:1280px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.empty{grid-column:1 / -1}}
+  @media (max-width:760px){
+    aside{position:static;margin:var(--pad);width:auto}
+    .menu{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:2px 16px;padding:18px 12px}
+    .logo{height:90px}
+    .menu,.box{flex:none;overflow:visible}
+    .box > .opts{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:2px 14px}
+    main{margin-left:0;padding:0 var(--pad) 60px}
+    .grid{gap:40px 10px}
+    .cap{font-size:13px}.cap .t{font-size:11px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<aside>
+  <section class="logo"><h1 style="margin:0;font:inherit">Wishlist</h1></section>
+
+  <section class="menu" id="cats" role="group" aria-label="Категории"></section>
+
+  <section class="box">
+    <div class="opts" role="group" aria-label="Порядок">
+      <button class="item" data-sort="want" aria-pressed="true">самое желанное</button>
+      <button class="item" data-sort="asc" aria-pressed="false">сначала дешёвое</button>
+      <button class="item" data-sort="desc" aria-pressed="false">сначала дорогое</button>
+      <button class="item" data-sort="new" aria-pressed="false">новое</button>
+    </div>
+  </section>
+
+  <section class="box">
+    <div class="opts" role="group" aria-label="Цена">
+      <button class="item" data-price="all" aria-pressed="true">любая</button>
+      <button class="item" data-price="3000" aria-pressed="false">до 3 000 ₽</button>
+      <button class="item" data-price="10000" aria-pressed="false">до 10 000 ₽</button>
+      <button class="item" data-price="more" aria-pressed="false">от 10 000 ₽</button>
+    </div>
+  </section>
+
+  <section class="foot">обновлено 12.11.26</section>
+</aside>
+
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <div class="dhead">
+    <h2 id="dlgTitle">Новое желание</h2>
+    <button class="x" type="button" aria-label="Закрыть" data-close>×</button>
+  </div>
+  <form id="addForm" method="dialog">
+    <label>Ссылка на вещь<input id="fUrl" type="url" required placeholder="Вставь ссылку с Wildberries, Ozon, Lamoda…"></label>
+    <p class="status" id="fStatus" aria-live="polite"></p>
+    <div class="more" id="fMore">
+      <div class="photo">
+        <div class="preview" id="preview"></div>
+        <label class="pick">Своё фото или скриншот<input type="file" id="fFile" accept="image/*"></label>
+      </div>
+      <label>Что это<input id="fTitle" required placeholder="Например, льняная рубашка"></label>
+      <div class="row">
+        <label>Цена, ₽<input id="fPrice" type="number" min="0" step="1" required placeholder="2500"></label>
+        <label>Категория<select id="fCat"></select></label>
+      </div>
+      <label>Насколько хочу
+        <div class="want" id="fWant"></div>
+      </label>
+      <button class="submit" type="submit">Добавить в виш-лист</button>
+      <p class="note">Новые желания сохраняются в этом браузере.</p>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/* ===== Список желаний =====
+   want: 1–5 (насколько хочу; по нему работает «самое желанное»)
+   cat:  одежда | сумки и обувь | красота | дом | аксессуары
+   img:  ссылка на фото (можно заменить на свой скриншот: img/имя.jpg) */
+const U = id => `https://images.unsplash.com/${id}?w=900&q=75&auto=format&fit=crop`;
+const base = [
+  {title:"Кожаная куртка оверсайз",        price:29990, want:5, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1551028719-00167b16eac5")},
+  {title:"Красная сумка с ручкой",         price:14900, want:5, cat:"сумки и обувь", url:"https://www.lamoda.ru/catalogsearch/result/?q=ikonika", img:U("photo-1584917865442-de89df76afd3")},
+  {title:"Набор керамических пиал",        price:2800,  want:4, cat:"дом",           url:"https://www.wildberries.ru/",    img:U("photo-1610701596007-11502861dcfa")},
+  {title:"Крем для лица, 50 мл",           price:2400,  want:3, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1620916566398-39f1143ab7be")},
+  {title:"Вязаный топ с бахромой",         price:4990,  want:3, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1434389677669-e08b4cac3105")},
+  {title:"Беспроводные наушники",          price:18990, want:4, cat:"аксессуары",    url:"https://www.ozon.ru/",           img:U("photo-1505740420928-5e560c06d30e")},
+  {title:"Парфюм с нотой розы",            price:11500, want:5, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1592945403244-b3fbafd7f539")},
+  {title:"Шоппер из плотной бумаги",       price:1490,  want:2, cat:"сумки и обувь", url:"https://www.wildberries.ru/",    img:U("photo-1544816155-12df9643f363")},
+  {title:"Голубое пальто",                 price:24990, want:4, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1539109136881-3be0616acf4b")},
+  {title:"Солнцезащитные очки",            price:2990,  want:3, cat:"аксессуары",    url:"https://www.lamoda.ru/",         img:U("photo-1572635196237-14b3f281503f")},
+  {title:"Сыворотка с пипеткой",           price:2700,  want:4, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1608571423902-eed4a5ad8108")},
+  {title:"Белая рубашка",                  price:5990,  want:3, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1603252109303-2751441dd157")},
+  {title:"Кеды винного цвета",             price:6990,  want:2, cat:"сумки и обувь", url:"https://www.lamoda.ru/",         img:U("photo-1525966222134-fcfa99b8ae77")},
+  {title:"Тарелки из глазурованной глины", price:4500,  want:3, cat:"дом",           url:"https://www.wildberries.ru/",    img:U("photo-1578749556568-bc2c40e68b61")},
+  {title:"Браслет с цирконами",            price:7500,  want:4, cat:"аксессуары",    url:"https://www.lamoda.ru/",         img:U("photo-1611591437281-460bfbe1220a")},
+  {title:"Набор для ухода",                price:3200,  want:2, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1631729371254-42c2892f0e6e")},
+  {title:"Жёлтый костюм",                  price:9990,  want:3, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1515886657613-9f3515b0c78f")},
+  {title:"Вазы матовые, 3 шт",             price:3600,  want:3, cat:"дом",           url:"https://www.wildberries.ru/",    img:U("photo-1604147706283-d7119b5b822c")},
+  {title:"Серьги-кольца",                  price:2500,  want:4, cat:"аксессуары",    url:"https://www.lamoda.ru/",         img:U("photo-1617038220319-276d3cfab638")},
+  {title:"Коричневая сумка через плечо",   price:8900,  want:4, cat:"сумки и обувь", url:"https://www.lamoda.ru/catalogsearch/result/?q=ikonika", img:U("photo-1600857062241-98e5dba7f214")},
+  {title:"Пастельные кроссовки",           price:11990, want:3, cat:"сумки и обувь", url:"https://www.lamoda.ru/",         img:U("photo-1595950653106-6c9ebd614d3a")},
+  {title:"Духи в квадратном флаконе",      price:6800,  want:2, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1563170351-be82bc888aa4")},
+  {title:"Постеры для стены",              price:2200,  want:2, cat:"дом",           url:"https://www.ozon.ru/",           img:U("photo-1513519245088-0e12902e5a38")},
+  {title:"Костюм из трикотажа",            price:7990,  want:5, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1594633312681-425c7b97ccd1")},
+  {title:"Смарт-часы",                     price:39990, want:2, cat:"аксессуары",    url:"https://www.ozon.ru/",           img:U("photo-1546868871-7041f2a55e12")},
+  {title:"Сумка с шёлковым платком",       price:9500,  want:3, cat:"сумки и обувь", url:"https://www.lamoda.ru/catalogsearch/result/?q=ikonika", img:U("photo-1591561954557-26941169b49e")},
+].map((it,n)=>({...it,id:'b'+n,order:n}));
+
+/* ===== свои желания (добавленные через «+») хранятся в браузере ===== */
+const KEY='wishlist-custom-v1';
+const storageOK=(()=>{try{localStorage.setItem(KEY+'-t','1');localStorage.removeItem(KEY+'-t');return true}catch{return false}})();
+const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||[]}catch{return []}};
+const save=list=>{try{localStorage.setItem(KEY,JSON.stringify(list));return true}catch{return false}};
+let custom=load();
+const all=()=>[...custom,...base];
+
+/* ===== магазин по ссылке ===== */
+const SHOPS={wildberries:'Wildberries',lamoda:'Lamoda',ozon:'Ozon',goldapple:'Золотое яблоко','12storeez':'12 Storeez',letu:'Летуаль',zarahome:'Zara Home',market:'Яндекс Маркет'};
+function shopName(url){
+  try{
+    const h=new URL(url).hostname.replace(/^www\./,'');
+    if(/ikonika/i.test(url)) return 'Ikonika';
+    for(const k in SHOPS) if(h.includes(k)) return SHOPS[k];
+    return h;
+  }catch{return ''}
+}
+
+/* ===== меню ===== */
+const CATS=['одежда','сумки и обувь','красота','дом','аксессуары'];
+const state={cat:'все',sort:'want',price:'all'};
+const catsEl=document.getElementById('cats');
+function renderCats(){
+  const list=all();
+  catsEl.innerHTML=['все',...CATS].map(c=>{
+    const n=c==='все'?list.length:list.filter(i=>i.cat===c).length;
+    return `<button class="item" data-cat="${c}" aria-pressed="${state.cat===c}">${c}<sup>${n}</sup></button>`;
+  }).join('');
+}
+document.querySelector('aside').addEventListener('click',e=>{
+  const b=e.target.closest('.item'); if(!b) return;
+  const key=Object.keys(b.dataset)[0];
+  state[key]=b.dataset[key];
+  b.parentElement.querySelectorAll('.item').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  render();
+});
+
+/* ===== карточки ===== */
+const ARROW='<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg>';
+const fmt=n=>Number(n).toLocaleString('ru-RU').replace(/ /g,' ')+' ₽';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function render(){
+  let list=all().filter(i=>
+    (state.cat==='все'||i.cat===state.cat) &&
+    (state.price==='all'||(state.price==='more'?i.price>=10000:i.price<=+state.price))
+  );
+  const by={
+    want:(a,b)=>b.want-a.want||a.price-b.price,
+    asc:(a,b)=>a.price-b.price,
+    desc:(a,b)=>b.price-a.price,
+    new:(a,b)=>(b.added||0)-(a.added||0)||a.order-b.order,
+  };
+  list.sort(by[state.sort]);
+
+  const addCard=`
+    <button class="card add" type="button" id="addBtn">
+      <div class="ph"><span class="plus" aria-hidden="true"></span></div>
+      <div class="cap"><span class="t">&nbsp;</span><span class="p">Добавить новое желание</span></div>
+    </button>`;
+  const cards=list.map((i,n)=>{
+    const shop=shopName(i.url);
+    return `
+    <a class="card" href="${esc(i.url)}" target="_blank" rel="noopener" style="animation-delay:${Math.min(n+1,12)*40}ms">
+      <div class="ph"><img src="${esc(i.img)}" alt="${esc(i.title)}" loading="lazy"></div>
+      <div class="cap">
+        <span class="t">${esc(i.title)}</span>
+        <span class="p">${fmt(i.price)}</span>
+        <span class="l">${(shop?'ссылка на '+esc(shop):'ссылка').replace(/(\S+)$/,'<span class="nw">$1'+ARROW+'</span>')}</span>
+      </div>
+      ${i.custom?`<button class="del" type="button" data-del="${i.id}" aria-label="Удалить «${esc(i.title)}»" title="Удалить">×</button>`:''}
+    </a>`}).join('');
+  document.getElementById('grid').innerHTML=addCard+(cards||`<div class="empty">Тут пусто — попробуй другой фильтр</div>`);
+  renderCats();
+}
+
+document.getElementById('grid').addEventListener('click',e=>{
+  const del=e.target.closest('[data-del]');
+  if(del){
+    e.preventDefault(); e.stopPropagation();
+    if(confirm('Удалить это желание?')){custom=custom.filter(i=>i.id!==del.dataset.del);save(custom);render()}
+    return;
+  }
+  if(e.target.closest('#addBtn')) openForm();
+});
+
+/* ===== форма «новое желание» ===== */
+const dlg=document.getElementById('dlg'), form=document.getElementById('addForm');
+const $=id=>document.getElementById(id);
+const fUrl=$('fUrl'), fTitle=$('fTitle'), fPrice=$('fPrice'), fCat=$('fCat'), fFile=$('fFile'), fMore=$('fMore'), fStatus=$('fStatus'), preview=$('preview');
+fCat.innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+$('fWant').innerHTML=[1,2,3,4,5].map(n=>`<label><input type="radio" name="want" value="${n}" ${n===3?'checked':''}><span>${n}</span></label>`).join('');
+let photo='', catTouched=false, lastUrl='';
+if(!storageOK) document.querySelector('.note').textContent='Этот браузер не даёт сохранять — желание пропадёт после перезагрузки страницы.';
+
+function openForm(){
+  form.reset(); photo=''; catTouched=false; lastUrl='';
+  preview.style.backgroundImage=''; fMore.classList.remove('on'); fStatus.textContent='';
+  dlg.showModal(); fUrl.focus();
+}
+dlg.querySelector('[data-close]').onclick=()=>dlg.close();
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close()});
+
+/* --- категория по словам из названия --- */
+const CAT_WORDS={
+  'сумки и обувь':/сумк|рюкзак|шоппер|клатч|кошел|кроссов|кед|туфл|ботин|сапог|лофер|босонож|сандал|балетк|мюл|обув|bag|shoe|sneaker|boot/i,
+  'красота':/крем|сыворот|парфюм|дух|туалетн|помад|тушь|тени|румян|пудр|шампун|маск|бальзам|тоник|скраб|лосьон|уход|аромат|beauty|serum|cream|perfume/i,
+  'дом':/тарел|чашк|кружк|пиал|ваз|свеч|плед|подушк|постел|полотен|посуд|бокал|стакан|ковр|ламп|светил|постер|декор|home/i,
+  'аксессуары':/серьг|кольц|браслет|колье|цепоч|подвес|час[ыо]|очки|ремен|пояс|платок|шарф|шапк|перчат|заколк|наушник|чехол|jewel|watch/i,
+  'одежда':/плать|рубаш|футбол|брюк|джинс|юбк|пальт|куртк|жакет|пиджак|свитер|джемпер|кардиган|топ|костюм|худи|свитшот|блуз|жилет|тренч|шорт|лонгслив|водолаз|dress|shirt|coat|jacket/i,
+};
+const guessCat=t=>{for(const c in CAT_WORDS) if(CAT_WORDS[c].test(t)) return c; return null};
+fCat.addEventListener('change',()=>catTouched=true);
+fTitle.addEventListener('input',()=>{if(catTouched) return; const c=guessCat(fTitle.value); if(c) fCat.value=c});
+
+/* --- подтянуть фото, название и цену по ссылке ---
+   Браузер сам не может читать чужие сайты, поэтому нужен маленький помощник на сервере:
+   GET /api/preview?url=… → {title, price, image}. Работает, когда сайт лежит на хостинге. */
+const PREVIEW_API='/api/preview';
+async function fetchMeta(url){
+  if(location.protocol==='file:'||location.protocol==='data:') throw new Error('local');
+  const r=await fetch(`${PREVIEW_API}?url=${encodeURIComponent(url)}`);
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+function setPhoto(src){photo=src||''; preview.style.backgroundImage=photo?`url("${photo.replace(/"/g,'')}")`:''}
+
+async function onUrl(){
+  const url=fUrl.value.trim();
+  if(!/^https?:\/\/\S+\.\S+/.test(url) || url===lastUrl) return;
+  lastUrl=url;
+  fMore.classList.add('on');
+  const shop=shopName(url);
+  fStatus.textContent=`Смотрю, что там на ${shop||'сайте'}…`;
+  try{
+    const m=await fetchMeta(url);
+    if(url!==fUrl.value.trim()) return;
+    if(m.title && !fTitle.value) fTitle.value=m.title;
+    if(m.price && !fPrice.value) fPrice.value=Math.round(m.price);
+    if(m.image && !photo) setPhoto(m.image);
+    if(!catTouched){const c=guessCat(m.title||''); if(c) fCat.value=c}
+    fStatus.textContent='Подтянула, что нашла — проверь и поправь, если нужно.';
+  }catch(err){
+    fStatus.textContent=err.message==='local'
+      ? 'Автозаполнение заработает, когда сайт будет на хостинге. Пока заполни сама.'
+      : `Не получилось прочитать ${shop||'страницу'} — заполни сама.`;
+  }
+  fTitle.focus();
+}
+fUrl.addEventListener('paste',()=>setTimeout(onUrl,0));
+fUrl.addEventListener('change',onUrl);
+fUrl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!fMore.classList.contains('on')){e.preventDefault();onUrl()}});
+
+// своё фото уменьшаем до 900px, чтобы влезло в память браузера
+fFile.addEventListener('change',()=>{
+  const f=fFile.files[0]; if(!f) return;
+  const img=new Image();
+  img.onload=()=>{
+    const k=Math.min(1,900/Math.max(img.width,img.height));
+    const c=document.createElement('canvas'); c.width=img.width*k; c.height=img.height*k;
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    setPhoto(c.toDataURL('image/jpeg',.82));
+    URL.revokeObjectURL(img.src);
+  };
+  img.src=URL.createObjectURL(f);
+});
+
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(!fMore.classList.contains('on')){onUrl();return}
+  const item={
+    id:'c'+Date.now(), custom:true, added:Date.now(), order:-1,
+    title:fTitle.value.trim(),
+    price:Math.max(0,+fPrice.value||0),
+    cat:fCat.value,
+    url:fUrl.value.trim(),
+    want:+form.querySelector('input[name=want]:checked').value,
+    img:photo||'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><rect width="4" height="5" fill="#e9e9e9"/></svg>'),
+  };
+  const next=[item,...custom];
+  if(storageOK && !save(next)){alert('Фото слишком большое для памяти браузера — попробуй картинку поменьше.');return}
+  custom=next; dlg.close(); render();
+});
+
+render();
+</script>
+</body>
+</html>
