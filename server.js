@@ -3,6 +3,7 @@
 // Без внешних зависимостей, нужен Node 18+.
 
 const http = require('http');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -184,30 +185,192 @@ async function preview(raw) {
   }
 }
 
+/* ---------- хранилище списка ----------
+   Всё лежит в DATA_DIR: items.json (список), img/ (загруженные фото), sessions.json (входы).
+   На Dockhost DATA_DIR — подключённый сетевой диск, чтобы данные переживали пересборку. */
+const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, '.data');
+const IMG_DIR = path.join(DATA_DIR, 'img');
+const ITEMS_FILE = path.join(DATA_DIR, 'items.json');
+const SESS_FILE = path.join(DATA_DIR, 'sessions.json');
+const PASSWORD = process.env.ADMIN_PASSWORD || '';
+const CATS = ['одежда', 'сумки и обувь', 'красота', 'дом', 'аксессуары'];
+
+fs.mkdirSync(IMG_DIR, { recursive: true });
+
+function readJson(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
+}
+function writeJson(file, data) {
+  const tmp = file + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 1));
+  fs.renameSync(tmp, file);
+}
+
+let db = readJson(ITEMS_FILE, null);
+if (!db) {
+  // первый запуск: берём стартовый список из seed.json
+  const seed = readJson(path.join(ROOT, 'seed.json'), []);
+  db = { updated: Date.now(), items: seed.map((it, n) => ({ ...it, id: it.id || 'b' + n, order: n, added: 0 })) };
+  writeJson(ITEMS_FILE, db);
+}
+const saveDb = () => { db.updated = Date.now(); writeJson(ITEMS_FILE, db); };
+
+/* ---------- вход хозяйки ---------- */
+const sha = s => crypto.createHash('sha256').update(String(s)).digest();
+let sessions = new Map(Object.entries(readJson(SESS_FILE, {})));       // hash(token) → expires
+const SESSION_DAYS = 180;
+const saveSessions = () => { try { writeJson(SESS_FILE, Object.fromEntries(sessions)); } catch {} };
+
+function cookies(req) {
+  return Object.fromEntries((req.headers.cookie || '').split(';').map(c => c.trim().split('=')).filter(p => p[0]).map(([k, ...v]) => [k, decodeURIComponent(v.join('='))]));
+}
+function isOwner(req) {
+  const t = cookies(req).wl_session;
+  if (!t) return false;
+  const k = sha(t).toString('hex');
+  const exp = sessions.get(k);
+  if (!exp) return false;
+  if (exp < Date.now()) { sessions.delete(k); saveSessions(); return false; }
+  return true;
+}
+const fails = new Map();   // ip → {n, until}
+function clientIp(req) { return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress; }
+function isHttps(req) { return req.headers['x-forwarded-proto'] === 'https' || !!req.socket.encrypted; }
+
+/* ---------- помощники http ---------- */
+function send(res, status, body, headers = {}) {
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
+  res.end(JSON.stringify(body));
+}
+function readBody(req, limit = 8 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on('data', c => { size += c.length; if (size > limit) { reject(new Error('too big')); req.destroy(); } else chunks.push(c); });
+    req.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); } catch { reject(new Error('bad json')); } });
+    req.on('error', reject);
+  });
+}
+
+// картинка: либо data:URL (скриншот) → сохраняем файлом, либо http(s)-ссылка
+function storeImage(img, id) {
+  if (typeof img !== 'string' || !img) return '';
+  const m = img.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+  if (m) {
+    const buf = Buffer.from(m[2], 'base64');
+    if (buf.length > 5 * 1024 * 1024) throw new Error('image too big');
+    const ext = m[1] === 'png' ? 'png' : m[1] === 'webp' ? 'webp' : 'jpg';
+    const name = `${id}.${ext}`;
+    fs.writeFileSync(path.join(IMG_DIR, name), buf);
+    return `/img/${name}`;
+  }
+  if (/^https?:\/\/\S+$/.test(img) && img.length < 2000) return img;
+  if (/^\/img\/[\w.-]+$/.test(img)) return img;
+  return '';
+}
+function cleanItem(b) {
+  const title = String(b.title || '').trim().slice(0, 200);
+  const url = String(b.url || '').trim().slice(0, 2000);
+  if (!title) throw new Error('title required');
+  if (!/^https?:\/\//.test(url)) throw new Error('url required');
+  return {
+    title, url,
+    price: Math.max(0, Math.round(+b.price || 0)),
+    want: Math.min(5, Math.max(1, Math.round(+b.want || 3))),
+    cat: CATS.includes(b.cat) ? b.cat : CATS[0],
+  };
+}
+const publicList = () => db.items.filter(i => !i.deleted).map(({ deleted, ...i }) => i);
+
 /* ---------- http ---------- */
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
+  const p = url.pathname;
 
-  if (url.pathname === '/api/preview') {
-    const { status, body } = await preview(url.searchParams.get('url') || '');
-    res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify(body));
+  try {
+    if (p === '/health') { res.writeHead(200); return res.end('ok'); }
+
+    if (p === '/api/items' && req.method === 'GET') {
+      return send(res, 200, { items: publicList(), updated: db.updated, owner: isOwner(req), canLogin: !!PASSWORD });
+    }
+
+    if (p === '/api/login' && req.method === 'POST') {
+      const ip = clientIp(req), f = fails.get(ip);
+      if (f && f.until > Date.now()) return send(res, 429, { error: 'Слишком много попыток. Попробуй через 15 минут.' });
+      if (!PASSWORD) return send(res, 503, { error: 'Пароль ещё не задан на сервере.' });
+      const { password } = await readBody(req, 10_000);
+      if (!crypto.timingSafeEqual(sha(password || ''), sha(PASSWORD))) {
+        const n = (f && f.until <= Date.now() ? 0 : f?.n || 0) + 1;
+        fails.set(ip, { n, until: n >= 8 ? Date.now() + 15 * 60_000 : 0 });
+        return send(res, 401, { error: 'Неверный пароль' });
+      }
+      fails.delete(ip);
+      const token = crypto.randomBytes(32).toString('hex');
+      sessions.set(sha(token).toString('hex'), Date.now() + SESSION_DAYS * 864e5); saveSessions();
+      const cookie = `wl_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${isHttps(req) ? '; Secure' : ''}`;
+      return send(res, 200, { ok: true }, { 'set-cookie': cookie });
+    }
+
+    if (p === '/api/logout' && req.method === 'POST') {
+      const t = cookies(req).wl_session;
+      if (t) { sessions.delete(sha(t).toString('hex')); saveSessions(); }
+      return send(res, 200, { ok: true }, { 'set-cookie': 'wl_session=; Path=/; Max-Age=0' });
+    }
+
+    // дальше — только для хозяйки
+    if (p.startsWith('/api/')) {
+      if (!isOwner(req)) return send(res, 401, { error: 'Нужно войти' });
+
+      if (p === '/api/preview') {
+        const { status, body } = await preview(url.searchParams.get('url') || '');
+        return send(res, status, body);
+      }
+
+      if (p === '/api/items' && req.method === 'POST') {
+        const b = await readBody(req);
+        const id = 'c' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+        const item = { id, ...cleanItem(b), img: storeImage(b.img, id), added: Date.now(), order: -1 };
+        db.items.unshift(item); saveDb();
+        return send(res, 201, { item });
+      }
+
+      const m = p.match(/^\/api\/items\/([\w-]+)(\/restore)?$/);
+      if (m) {
+        const item = db.items.find(i => i.id === m[1]);
+        if (!item) return send(res, 404, { error: 'not found' });
+        if (req.method === 'DELETE' && !m[2]) { item.deleted = Date.now(); saveDb(); return send(res, 200, { ok: true }); }
+        if (req.method === 'POST' && m[2]) { delete item.deleted; saveDb(); return send(res, 200, { ok: true }); }
+      }
+      return send(res, 404, { error: 'not found' });
+    }
+
+    // загруженные фото
+    if (p.startsWith('/img/')) {
+      const name = path.basename(p);
+      if (!/^[\w.-]+\.(jpg|png|webp)$/.test(name)) { res.writeHead(404); return res.end(); }
+      return fs.readFile(path.join(IMG_DIR, name), (err, data) => {
+        if (err) { res.writeHead(404); return res.end('not found'); }
+        res.writeHead(200, { 'content-type': TYPES[path.extname(name)] || 'image/jpeg', 'cache-control': 'public, max-age=31536000, immutable' });
+        res.end(data);
+      });
+    }
+
+    // сама страница и статика
+    let file = path.normalize(decodeURIComponent(p)).replace(/^([/\\])+/, '');
+    if (!file || file.endsWith('/')) file += 'index.html';
+    const full = path.join(ROOT, file);
+    if (!full.startsWith(ROOT + path.sep) || /(^|[/\\])(server\.js|Dockerfile|package\.json|seed\.json|node_modules|\.)/.test(file)) {
+      res.writeHead(404); return res.end('not found');
+    }
+    fs.readFile(full, (err, data) => {
+      if (err) { res.writeHead(404); return res.end('not found'); }
+      res.writeHead(200, { 'content-type': TYPES[path.extname(full).toLowerCase()] || 'application/octet-stream', 'cache-control': 'no-cache' });
+      res.end(data);
+    });
+  } catch (e) {
+    const msg = /too big/.test(e.message) ? 'Файл слишком большой' : /required/.test(e.message) ? 'Заполни название и ссылку' : 'Что-то пошло не так';
+    send(res, /required|bad json|too big/.test(e.message) ? 400 : 500, { error: msg });
   }
-
-  if (url.pathname === '/health') { res.writeHead(200); return res.end('ok'); }
-
-  let file = path.normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
-  if (!file || file.endsWith('/')) file += 'index.html';
-  const full = path.join(ROOT, file);
-  if (!full.startsWith(ROOT) || /(^|[/\\])(server\.js|Dockerfile|package\.json|node_modules|\.)/.test(file)) {
-    res.writeHead(404); return res.end('not found');
-  }
-  fs.readFile(full, (err, data) => {
-    if (err) { res.writeHead(404); return res.end('not found'); }
-    res.writeHead(200, { 'content-type': TYPES[path.extname(full).toLowerCase()] || 'application/octet-stream' });
-    res.end(data);
-  });
 });
 
-if (require.main === module) server.listen(PORT, () => console.log(`wishlist on http://localhost:${PORT}`));
+if (require.main === module) server.listen(PORT, () => console.log(`wishlist on http://localhost:${PORT} · data in ${DATA_DIR} · password ${PASSWORD ? 'set' : 'NOT set'}`));
 module.exports = { jsonLdProduct, meta, cleanTitle, toNum, safeUrl };

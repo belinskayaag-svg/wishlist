@@ -58,6 +58,10 @@
   .box > .opts{display:flex;flex-direction:column;align-items:center}
 
   .foot{flex:none;padding:16px;text-align:center;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .login{appearance:none;background:none;border:0;padding:0;margin-left:8px;cursor:pointer;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;transition:color .2s}
+  .login:hover{color:var(--accent)}
+  .login:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .err{color:#c62828}
 
   /* ================= карточки справа ================= */
   main{margin-left:calc(var(--side-w) + var(--pad)*2);padding:var(--pad) var(--pad) 80px 8px}
@@ -201,7 +205,7 @@
     </div>
   </section>
 
-  <section class="foot">обновлено 12.11.26</section>
+  <section class="foot"><span id="updated">обновлено …</span><button class="login" type="button" id="loginBtn" hidden>· войти</button></section>
 </aside>
 
 <main>
@@ -233,60 +237,53 @@
         <div class="want" id="fWant"></div>
       </label>
       <button class="submit" type="submit">Добавить в виш-лист</button>
-      <p class="note">Новые желания сохраняются в этом браузере.</p>
+      <p class="note">Желание сразу увидят все, у кого есть ссылка на виш-лист.</p>
     </div>
+  </form>
+</dialog>
+
+<dialog id="loginDlg" aria-labelledby="loginTitle">
+  <div class="dhead">
+    <h2 id="loginTitle">Вход</h2>
+    <button class="x" type="button" aria-label="Закрыть" data-close-login>×</button>
+  </div>
+  <form id="loginForm">
+    <label>Пароль<input id="lPass" type="password" autocomplete="current-password" required></label>
+    <p class="status" id="lStatus" aria-live="polite"></p>
+    <button class="submit" type="submit">Войти</button>
+    <p class="note">Войти может только хозяйка виш-листа — после входа можно добавлять и удалять желания.</p>
   </form>
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="undo">Вернуть</button></div>
 
 <script>
-/* ===== Список желаний =====
-   want: 1–5 (насколько хочу; по нему работает «самое желанное»)
-   cat:  одежда | сумки и обувь | красота | дом | аксессуары
-   img:  ссылка на фото (можно заменить на свой скриншот: img/имя.jpg) */
-const U = id => `https://images.unsplash.com/${id}?w=900&q=75&auto=format&fit=crop`;
-const base = [
-  {title:"Кожаная куртка оверсайз",        price:29990, want:5, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1551028719-00167b16eac5")},
-  {title:"Красная сумка с ручкой",         price:14900, want:5, cat:"сумки и обувь", url:"https://www.lamoda.ru/catalogsearch/result/?q=ikonika", img:U("photo-1584917865442-de89df76afd3")},
-  {title:"Набор керамических пиал",        price:2800,  want:4, cat:"дом",           url:"https://www.wildberries.ru/",    img:U("photo-1610701596007-11502861dcfa")},
-  {title:"Крем для лица, 50 мл",           price:2400,  want:3, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1620916566398-39f1143ab7be")},
-  {title:"Вязаный топ с бахромой",         price:4990,  want:3, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1434389677669-e08b4cac3105")},
-  {title:"Беспроводные наушники",          price:18990, want:4, cat:"аксессуары",    url:"https://www.ozon.ru/",           img:U("photo-1505740420928-5e560c06d30e")},
-  {title:"Парфюм с нотой розы",            price:11500, want:5, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1592945403244-b3fbafd7f539")},
-  {title:"Шоппер из плотной бумаги",       price:1490,  want:2, cat:"сумки и обувь", url:"https://www.wildberries.ru/",    img:U("photo-1544816155-12df9643f363")},
-  {title:"Голубое пальто",                 price:24990, want:4, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1539109136881-3be0616acf4b")},
-  {title:"Солнцезащитные очки",            price:2990,  want:3, cat:"аксессуары",    url:"https://www.lamoda.ru/",         img:U("photo-1572635196237-14b3f281503f")},
-  {title:"Сыворотка с пипеткой",           price:2700,  want:4, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1608571423902-eed4a5ad8108")},
-  {title:"Белая рубашка",                  price:5990,  want:3, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1603252109303-2751441dd157")},
-  {title:"Кеды винного цвета",             price:6990,  want:2, cat:"сумки и обувь", url:"https://www.lamoda.ru/",         img:U("photo-1525966222134-fcfa99b8ae77")},
-  {title:"Тарелки из глазурованной глины", price:4500,  want:3, cat:"дом",           url:"https://www.wildberries.ru/",    img:U("photo-1578749556568-bc2c40e68b61")},
-  {title:"Браслет с цирконами",            price:7500,  want:4, cat:"аксессуары",    url:"https://www.lamoda.ru/",         img:U("photo-1611591437281-460bfbe1220a")},
-  {title:"Набор для ухода",                price:3200,  want:2, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1631729371254-42c2892f0e6e")},
-  {title:"Жёлтый костюм",                  price:9990,  want:3, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1515886657613-9f3515b0c78f")},
-  {title:"Вазы матовые, 3 шт",             price:3600,  want:3, cat:"дом",           url:"https://www.wildberries.ru/",    img:U("photo-1604147706283-d7119b5b822c")},
-  {title:"Серьги-кольца",                  price:2500,  want:4, cat:"аксессуары",    url:"https://www.lamoda.ru/",         img:U("photo-1617038220319-276d3cfab638")},
-  {title:"Коричневая сумка через плечо",   price:8900,  want:4, cat:"сумки и обувь", url:"https://www.lamoda.ru/catalogsearch/result/?q=ikonika", img:U("photo-1600857062241-98e5dba7f214")},
-  {title:"Пастельные кроссовки",           price:11990, want:3, cat:"сумки и обувь", url:"https://www.lamoda.ru/",         img:U("photo-1595950653106-6c9ebd614d3a")},
-  {title:"Духи в квадратном флаконе",      price:6800,  want:2, cat:"красота",       url:"https://goldapple.ru/",          img:U("photo-1563170351-be82bc888aa4")},
-  {title:"Постеры для стены",              price:2200,  want:2, cat:"дом",           url:"https://www.ozon.ru/",           img:U("photo-1513519245088-0e12902e5a38")},
-  {title:"Костюм из трикотажа",            price:7990,  want:5, cat:"одежда",        url:"https://12storeez.com/",         img:U("photo-1594633312681-425c7b97ccd1")},
-  {title:"Смарт-часы",                     price:39990, want:2, cat:"аксессуары",    url:"https://www.ozon.ru/",           img:U("photo-1546868871-7041f2a55e12")},
-  {title:"Сумка с шёлковым платком",       price:9500,  want:3, cat:"сумки и обувь", url:"https://www.lamoda.ru/catalogsearch/result/?q=ikonika", img:U("photo-1591561954557-26941169b49e")},
-].map((it,n)=>({...it,id:'b'+n,order:n}));
-
-/* ===== свои желания (добавленные через «+») хранятся в браузере ===== */
-const KEY='wishlist-custom-v1';
-const storageOK=(()=>{try{localStorage.setItem(KEY+'-t','1');localStorage.removeItem(KEY+'-t');return true}catch{return false}})();
-const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||[]}catch{return []}};
-const save=list=>{try{localStorage.setItem(KEY,JSON.stringify(list));return true}catch{return false}};
-let custom=load();
-// удалённые вещи из основного списка
-const KEY_H='wishlist-hidden-v1';
-const hidden=new Set((()=>{try{return JSON.parse(localStorage.getItem(KEY_H))||[]}catch{return []}})());
-const saveHidden=()=>{try{localStorage.setItem(KEY_H,JSON.stringify([...hidden]))}catch{}};
-const all=()=>[...custom,...base.filter(i=>!hidden.has(i.id))];
+/* ===== Список желаний берётся с сервера (GET /api/items) =====
+   Добавлять и удалять может только хозяйка после входа по паролю. */
 const $=id=>document.getElementById(id);
+let items=[], owner=false, canLogin=false;
+const all=()=>items;
+
+async function api(path,opt={}){
+  const r=await fetch(path,{credentials:'same-origin',...opt,headers:{'content-type':'application/json',...(opt.headers||{})}});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw Object.assign(new Error(j.error||('Ошибка '+r.status)),{status:r.status});
+  return j;
+}
+const fmtDate=t=>new Date(t).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'});
+async function loadItems(){
+  try{
+    const d=await api('/api/items');
+    items=d.items; owner=d.owner; canLogin=d.canLogin;
+    $('updated').textContent='обновлено '+fmtDate(d.updated);
+  }catch{
+    $('updated').textContent='не получилось загрузить список';
+  }
+  const lb=$('loginBtn');
+  lb.hidden=!(owner||canLogin);
+  lb.textContent=owner?'· выйти':'· войти';
+  render();
+}
 
 /* ===== магазин по ссылке ===== */
 const SHOPS={wildberries:'Wildberries',lamoda:'Lamoda',ozon:'Ozon',goldapple:'Золотое яблоко','12storeez':'12 Storeez',letu:'Летуаль',zarahome:'Zara Home',market:'Яндекс Маркет'};
@@ -352,9 +349,9 @@ function render(){
         <span class="p">${fmt(i.price)}</span>
         <span class="l">${(shop?'ссылка на '+esc(shop):'ссылка').replace(/(\S+)$/,'<span class="nw">$1'+ARROW+'</span>')}</span>
       </div>
-      <button class="del" type="button" data-del="${i.id}" aria-label="Удалить «${esc(i.title)}»" title="Удалить">${CROSS}</button>
+      ${owner?`<button class="del" type="button" data-del="${i.id}" aria-label="Удалить «${esc(i.title)}»" title="Удалить">${CROSS}</button>`:''}
     </a>`}).join('');
-  document.getElementById('grid').innerHTML=addCard+(cards||`<div class="empty">Тут пусто — попробуй другой фильтр</div>`);
+  document.getElementById('grid').innerHTML=(owner?addCard:'')+(cards||`<div class="empty">Тут пусто — попробуй другой фильтр</div>`);
   renderCats();
 }
 
@@ -362,22 +359,24 @@ function render(){
 const toast=$('toast'), toastMsg=$('toastMsg');
 let undoFn=null, toastTimer;
 function showToast(msg,undo){
-  toastMsg.textContent=msg; undoFn=undo; toast.classList.add('on');
+  toastMsg.textContent=msg; undoFn=undo; $('undo').hidden=!undo; toast.classList.add('on');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>{toast.classList.remove('on');undoFn=null},6000);
 }
 $('undo').onclick=()=>{if(undoFn) undoFn(); undoFn=null; toast.classList.remove('on')};
 
-function removeItem(id){
-  const ci=custom.findIndex(i=>i.id===id);
-  if(ci>-1){
-    const [item]=custom.splice(ci,1); save(custom);
-    showToast(`Удалено: ${item.title}`,()=>{custom.splice(ci,0,item);save(custom);render()});
-  }else{
-    const item=base.find(i=>i.id===id); if(!item) return;
-    hidden.add(id); saveHidden();
-    showToast(`Удалено: ${item.title}`,()=>{hidden.delete(id);saveHidden();render()});
+async function removeItem(id){
+  const item=items.find(i=>i.id===id); if(!item) return;
+  items=items.filter(i=>i.id!==id); render();
+  try{
+    await api('/api/items/'+id,{method:'DELETE'});
+    showToast(`Удалено: ${item.title}`,async()=>{
+      await api(`/api/items/${id}/restore`,{method:'POST'}).catch(()=>{});
+      loadItems();
+    });
+  }catch(e){
+    showToast(e.status===401?'Нужно войти заново':'Не получилось удалить',null);
+    loadItems();
   }
-  render();
 }
 
 document.getElementById('grid').addEventListener('click',e=>{
@@ -396,7 +395,6 @@ const fUrl=$('fUrl'), fTitle=$('fTitle'), fPrice=$('fPrice'), fCat=$('fCat'), fF
 fCat.innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
 $('fWant').innerHTML=[1,2,3,4,5].map(n=>`<label><input type="radio" name="want" value="${n}" ${n===3?'checked':''}><span>${n}</span></label>`).join('');
 let photo='', catTouched=false, lastUrl='';
-if(!storageOK) document.querySelector('.note').textContent='Этот браузер не даёт сохранять — желание пропадёт после перезагрузки страницы.';
 
 function openForm(){
   form.reset(); photo=''; catTouched=false; lastUrl='';
@@ -423,12 +421,7 @@ fTitle.addEventListener('input',()=>{if(catTouched) return; const c=guessCat(fTi
    Браузер сам не может читать чужие сайты, поэтому нужен маленький помощник на сервере:
    GET /api/preview?url=… → {title, price, image}. Работает, когда сайт лежит на хостинге. */
 const PREVIEW_API='/api/preview';
-async function fetchMeta(url){
-  if(location.protocol==='file:'||location.protocol==='data:') throw new Error('local');
-  const r=await fetch(`${PREVIEW_API}?url=${encodeURIComponent(url)}`);
-  if(!r.ok) throw new Error(r.status);
-  return r.json();
-}
+const fetchMeta=url=>api(`${PREVIEW_API}?url=${encodeURIComponent(url)}`);
 function setPhoto(src){
   photo=src||'';
   preview.style.backgroundImage=photo?`url("${photo.replace(/"/g,'')}")`:'';
@@ -452,8 +445,8 @@ async function onUrl(){
     if(!catTouched){const c=guessCat(m.title||''); if(c) fCat.value=c}
     fStatus.textContent='Подтянула, что нашла — проверь и поправь, если нужно.';
   }catch(err){
-    fStatus.textContent=err.message==='local'
-      ? 'Автозаполнение заработает, когда сайт будет на хостинге. Пока заполни сама.'
+    fStatus.textContent=err.status===401
+      ? 'Нужно войти заново.'
       : `${shop||'Магазин'} не даёт прочитать страницу — сделай скриншот товара и вставь его ⌘V, а название и цену впиши сама.`;
   }
   if(!photo) preview.classList.add('need');
@@ -496,24 +489,48 @@ dlg.addEventListener('drop',e=>{
   if(f){e.preventDefault();fileToPhoto(f)}
 });
 
-form.addEventListener('submit',e=>{
+form.addEventListener('submit',async e=>{
   e.preventDefault();
   if(!fMore.classList.contains('on')){onUrl();return}
-  const item={
-    id:'c'+Date.now(), custom:true, added:Date.now(), order:-1,
-    title:fTitle.value.trim(),
-    price:Math.max(0,+fPrice.value||0),
-    cat:fCat.value,
-    url:fUrl.value.trim(),
-    want:+form.querySelector('input[name=want]:checked').value,
-    img:photo||'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><rect width="4" height="5" fill="#e9e9e9"/></svg>'),
-  };
-  const next=[item,...custom];
-  if(storageOK && !save(next)){alert('Фото слишком большое для памяти браузера — попробуй картинку поменьше.');return}
-  custom=next; dlg.close(); render();
+  const btn=form.querySelector('.submit'); btn.disabled=true; btn.textContent='Сохраняю…';
+  try{
+    await api('/api/items',{method:'POST',body:JSON.stringify({
+      title:fTitle.value.trim(),
+      price:+fPrice.value||0,
+      cat:fCat.value,
+      url:fUrl.value.trim(),
+      want:+form.querySelector('input[name=want]:checked').value,
+      img:photo,
+    })});
+    dlg.close();
+    state.sort='new'; document.querySelectorAll('[data-sort]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.sort==='new'));
+    await loadItems();
+  }catch(err){
+    fStatus.innerHTML=`<span class="err">${esc(err.status===401?'Нужно войти заново.':err.message)}</span>`;
+  }finally{
+    btn.disabled=false; btn.textContent='Добавить в виш-лист';
+  }
 });
 
-render();
+/* ===== вход / выход ===== */
+const loginDlg=$('loginDlg'), loginForm=$('loginForm'), lPass=$('lPass'), lStatus=$('lStatus');
+$('loginBtn').onclick=async()=>{
+  if(owner){ await api('/api/logout',{method:'POST'}).catch(()=>{}); return loadItems(); }
+  loginForm.reset(); lStatus.textContent=''; loginDlg.showModal(); lPass.focus();
+};
+loginDlg.querySelector('[data-close-login]').onclick=()=>loginDlg.close();
+loginDlg.addEventListener('click',e=>{if(e.target===loginDlg)loginDlg.close()});
+loginForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  try{
+    await api('/api/login',{method:'POST',body:JSON.stringify({password:lPass.value})});
+    loginDlg.close(); await loadItems();
+  }catch(err){
+    lStatus.innerHTML=`<span class="err">${esc(err.message)}</span>`; lPass.select();
+  }
+});
+
+loadItems();
 </script>
 </body>
 </html>

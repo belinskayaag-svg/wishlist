@@ -1,0 +1,236 @@
+[
+ {
+  "id": "b0",
+  "title": "Кожаная куртка оверсайз",
+  "price": 29990,
+  "want": 5,
+  "cat": "одежда",
+  "url": "https://12storeez.com/",
+  "img": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b1",
+  "title": "Красная сумка с ручкой",
+  "price": 14900,
+  "want": 5,
+  "cat": "сумки и обувь",
+  "url": "https://www.lamoda.ru/catalogsearch/result/?q=ikonika",
+  "img": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b2",
+  "title": "Набор керамических пиал",
+  "price": 2800,
+  "want": 4,
+  "cat": "дом",
+  "url": "https://www.wildberries.ru/",
+  "img": "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b3",
+  "title": "Крем для лица, 50 мл",
+  "price": 2400,
+  "want": 3,
+  "cat": "красота",
+  "url": "https://goldapple.ru/",
+  "img": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b4",
+  "title": "Вязаный топ с бахромой",
+  "price": 4990,
+  "want": 3,
+  "cat": "одежда",
+  "url": "https://12storeez.com/",
+  "img": "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b5",
+  "title": "Беспроводные наушники",
+  "price": 18990,
+  "want": 4,
+  "cat": "аксессуары",
+  "url": "https://www.ozon.ru/",
+  "img": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b6",
+  "title": "Парфюм с нотой розы",
+  "price": 11500,
+  "want": 5,
+  "cat": "красота",
+  "url": "https://goldapple.ru/",
+  "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b7",
+  "title": "Шоппер из плотной бумаги",
+  "price": 1490,
+  "want": 2,
+  "cat": "сумки и обувь",
+  "url": "https://www.wildberries.ru/",
+  "img": "https://images.unsplash.com/photo-1544816155-12df9643f363?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b8",
+  "title": "Голубое пальто",
+  "price": 24990,
+  "want": 4,
+  "cat": "одежда",
+  "url": "https://12storeez.com/",
+  "img": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b9",
+  "title": "Солнцезащитные очки",
+  "price": 2990,
+  "want": 3,
+  "cat": "аксессуары",
+  "url": "https://www.lamoda.ru/",
+  "img": "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b10",
+  "title": "Сыворотка с пипеткой",
+  "price": 2700,
+  "want": 4,
+  "cat": "красота",
+  "url": "https://goldapple.ru/",
+  "img": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b11",
+  "title": "Белая рубашка",
+  "price": 5990,
+  "want": 3,
+  "cat": "одежда",
+  "url": "https://12storeez.com/",
+  "img": "https://images.unsplash.com/photo-1603252109303-2751441dd157?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b12",
+  "title": "Кеды винного цвета",
+  "price": 6990,
+  "want": 2,
+  "cat": "сумки и обувь",
+  "url": "https://www.lamoda.ru/",
+  "img": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b13",
+  "title": "Тарелки из глазурованной глины",
+  "price": 4500,
+  "want": 3,
+  "cat": "дом",
+  "url": "https://www.wildberries.ru/",
+  "img": "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b14",
+  "title": "Браслет с цирконами",
+  "price": 7500,
+  "want": 4,
+  "cat": "аксессуары",
+  "url": "https://www.lamoda.ru/",
+  "img": "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b15",
+  "title": "Набор для ухода",
+  "price": 3200,
+  "want": 2,
+  "cat": "красота",
+  "url": "https://goldapple.ru/",
+  "img": "https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b16",
+  "title": "Жёлтый костюм",
+  "price": 9990,
+  "want": 3,
+  "cat": "одежда",
+  "url": "https://12storeez.com/",
+  "img": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b17",
+  "title": "Вазы матовые, 3 шт",
+  "price": 3600,
+  "want": 3,
+  "cat": "дом",
+  "url": "https://www.wildberries.ru/",
+  "img": "https://images.unsplash.com/photo-1604147706283-d7119b5b822c?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b18",
+  "title": "Серьги-кольца",
+  "price": 2500,
+  "want": 4,
+  "cat": "аксессуары",
+  "url": "https://www.lamoda.ru/",
+  "img": "https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b19",
+  "title": "Коричневая сумка через плечо",
+  "price": 8900,
+  "want": 4,
+  "cat": "сумки и обувь",
+  "url": "https://www.lamoda.ru/catalogsearch/result/?q=ikonika",
+  "img": "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b20",
+  "title": "Пастельные кроссовки",
+  "price": 11990,
+  "want": 3,
+  "cat": "сумки и обувь",
+  "url": "https://www.lamoda.ru/",
+  "img": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b21",
+  "title": "Духи в квадратном флаконе",
+  "price": 6800,
+  "want": 2,
+  "cat": "красота",
+  "url": "https://goldapple.ru/",
+  "img": "https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b22",
+  "title": "Постеры для стены",
+  "price": 2200,
+  "want": 2,
+  "cat": "дом",
+  "url": "https://www.ozon.ru/",
+  "img": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b23",
+  "title": "Костюм из трикотажа",
+  "price": 7990,
+  "want": 5,
+  "cat": "одежда",
+  "url": "https://12storeez.com/",
+  "img": "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b24",
+  "title": "Смарт-часы",
+  "price": 39990,
+  "want": 2,
+  "cat": "аксессуары",
+  "url": "https://www.ozon.ru/",
+  "img": "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=900&q=75&auto=format&fit=crop"
+ },
+ {
+  "id": "b25",
+  "title": "Сумка с шёлковым платком",
+  "price": 9500,
+  "want": 3,
+  "cat": "сумки и обувь",
+  "url": "https://www.lamoda.ru/catalogsearch/result/?q=ikonika",
+  "img": "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=900&q=75&auto=format&fit=crop"
+ }
+]
