@@ -78,10 +78,14 @@
   .card:hover .l svg{transform:translate(2px,-2px)}
 
   .del{
-    position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:0;
-    background:rgba(255,255,255,.9);cursor:pointer;font-size:18px;line-height:1;opacity:0;transition:opacity .2s;z-index:2
+    position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:0;padding:0;
+    background:rgba(255,255,255,.92);color:var(--ink);cursor:pointer;display:grid;place-items:center;
+    opacity:0;transform:scale(.85);transition:opacity .2s,transform .2s,background .2s,color .2s;z-index:2
   }
-  .card:hover .del,.del:focus-visible{opacity:1}
+  .del svg{width:12px;height:12px}
+  .card:hover .del,.del:focus-visible{opacity:1;transform:none}
+  .del:hover{background:var(--ink);color:#fff}
+  @media (hover:none){.del{opacity:.9;transform:none}}
 
   /* карточка «добавить желание» */
   .add{appearance:none;background:none;border:0;padding:0;text-align:left;cursor:pointer;width:100%;align-self:start;font:inherit}
@@ -120,8 +124,30 @@
   .status{margin:-6px 0 0;font-size:13px;color:var(--muted);min-height:1em}
   .status:empty{display:none}
   .photo{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:end}
-  .preview{width:96px;aspect-ratio:4/5;background:var(--card);background-size:cover;background-position:center;border:1px solid #ddd}
-  .photo input[type=file]{border:0;font-size:13px;padding:0}
+  .drop{display:block;cursor:pointer;text-transform:none}
+  .preview{
+    width:96px;aspect-ratio:4/5;display:grid;place-items:center;
+    background:transparent center/cover no-repeat;border:1.5px dashed #b9b9b9;transition:border-color .2s,background-color .2s
+  }
+  .preview:empty:not(.has)::after{content:"+";font-size:28px;font-weight:300;color:#9a9a9a}
+  .preview.has{border-style:solid;border-color:transparent}
+  .preview.need{border-color:var(--accent)}
+  .preview.need:not(.has)::after{color:var(--accent)}
+  .drop:hover .preview:not(.has){border-color:var(--ink)}
+  dialog.dragging .preview{border-color:var(--accent);background-color:rgba(0,56,255,.06)}
+  .phint{margin:0;font-size:13px;line-height:1.4;color:var(--muted);align-self:center}
+  kbd{font:inherit;font-size:12px;border:1px solid #cfcfcf;border-radius:4px;padding:0 4px;color:var(--ink)}
+
+  /* уведомление «удалено — вернуть» */
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:20;
+    display:flex;align-items:center;gap:18px;background:var(--ink);color:var(--bg);padding:12px 18px;
+    font-size:14px;transition:opacity .25s,transform .25s;max-width:calc(100vw - 32px)
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .toast button{appearance:none;border:0;background:none;color:#fff;cursor:pointer;padding:0;text-transform:uppercase;letter-spacing:.03em;font-size:13px;border-bottom:1px solid currentColor;flex:none}
+  .toast button:hover{color:#9db2ff}
   .want{display:flex;gap:6px}
   .want input{position:absolute;opacity:0;pointer-events:none}
   .want span{width:34px;height:34px;border:var(--frame);display:grid;place-items:center;font-size:14px;color:var(--ink);cursor:pointer;transition:background .15s,color .15s}
@@ -192,8 +218,11 @@
     <p class="status" id="fStatus" aria-live="polite"></p>
     <div class="more" id="fMore">
       <div class="photo">
-        <div class="preview" id="preview"></div>
-        <label class="pick">Своё фото или скриншот<input type="file" id="fFile" accept="image/*"></label>
+        <label class="drop" title="Выбрать фото">
+          <span class="preview" id="preview"></span>
+          <input type="file" id="fFile" accept="image/*" hidden>
+        </label>
+        <p class="phint">Фото: вставь скриншот <kbd>⌘V</kbd>, перетащи картинку в&nbsp;окно или нажми на&nbsp;квадрат.</p>
       </div>
       <label>Что это<input id="fTitle" required placeholder="Например, льняная рубашка"></label>
       <div class="row">
@@ -208,6 +237,8 @@
     </div>
   </form>
 </dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="undo">Вернуть</button></div>
 
 <script>
 /* ===== Список желаний =====
@@ -250,7 +281,12 @@ const storageOK=(()=>{try{localStorage.setItem(KEY+'-t','1');localStorage.remove
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||[]}catch{return []}};
 const save=list=>{try{localStorage.setItem(KEY,JSON.stringify(list));return true}catch{return false}};
 let custom=load();
-const all=()=>[...custom,...base];
+// удалённые вещи из основного списка
+const KEY_H='wishlist-hidden-v1';
+const hidden=new Set((()=>{try{return JSON.parse(localStorage.getItem(KEY_H))||[]}catch{return []}})());
+const saveHidden=()=>{try{localStorage.setItem(KEY_H,JSON.stringify([...hidden]))}catch{}};
+const all=()=>[...custom,...base.filter(i=>!hidden.has(i.id))];
+const $=id=>document.getElementById(id);
 
 /* ===== магазин по ссылке ===== */
 const SHOPS={wildberries:'Wildberries',lamoda:'Lamoda',ozon:'Ozon',goldapple:'Золотое яблоко','12storeez':'12 Storeez',letu:'Летуаль',zarahome:'Zara Home',market:'Яндекс Маркет'};
@@ -283,6 +319,7 @@ document.querySelector('aside').addEventListener('click',e=>{
 });
 
 /* ===== карточки ===== */
+const CROSS='<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>';
 const ARROW='<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg>';
 const fmt=n=>Number(n).toLocaleString('ru-RU').replace(/ /g,' ')+' ₽';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -315,17 +352,39 @@ function render(){
         <span class="p">${fmt(i.price)}</span>
         <span class="l">${(shop?'ссылка на '+esc(shop):'ссылка').replace(/(\S+)$/,'<span class="nw">$1'+ARROW+'</span>')}</span>
       </div>
-      ${i.custom?`<button class="del" type="button" data-del="${i.id}" aria-label="Удалить «${esc(i.title)}»" title="Удалить">×</button>`:''}
+      <button class="del" type="button" data-del="${i.id}" aria-label="Удалить «${esc(i.title)}»" title="Удалить">${CROSS}</button>
     </a>`}).join('');
   document.getElementById('grid').innerHTML=addCard+(cards||`<div class="empty">Тут пусто — попробуй другой фильтр</div>`);
   renderCats();
+}
+
+/* ===== удаление с возможностью вернуть ===== */
+const toast=$('toast'), toastMsg=$('toastMsg');
+let undoFn=null, toastTimer;
+function showToast(msg,undo){
+  toastMsg.textContent=msg; undoFn=undo; toast.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{toast.classList.remove('on');undoFn=null},6000);
+}
+$('undo').onclick=()=>{if(undoFn) undoFn(); undoFn=null; toast.classList.remove('on')};
+
+function removeItem(id){
+  const ci=custom.findIndex(i=>i.id===id);
+  if(ci>-1){
+    const [item]=custom.splice(ci,1); save(custom);
+    showToast(`Удалено: ${item.title}`,()=>{custom.splice(ci,0,item);save(custom);render()});
+  }else{
+    const item=base.find(i=>i.id===id); if(!item) return;
+    hidden.add(id); saveHidden();
+    showToast(`Удалено: ${item.title}`,()=>{hidden.delete(id);saveHidden();render()});
+  }
+  render();
 }
 
 document.getElementById('grid').addEventListener('click',e=>{
   const del=e.target.closest('[data-del]');
   if(del){
     e.preventDefault(); e.stopPropagation();
-    if(confirm('Удалить это желание?')){custom=custom.filter(i=>i.id!==del.dataset.del);save(custom);render()}
+    removeItem(del.dataset.del);
     return;
   }
   if(e.target.closest('#addBtn')) openForm();
@@ -333,7 +392,6 @@ document.getElementById('grid').addEventListener('click',e=>{
 
 /* ===== форма «новое желание» ===== */
 const dlg=document.getElementById('dlg'), form=document.getElementById('addForm');
-const $=id=>document.getElementById(id);
 const fUrl=$('fUrl'), fTitle=$('fTitle'), fPrice=$('fPrice'), fCat=$('fCat'), fFile=$('fFile'), fMore=$('fMore'), fStatus=$('fStatus'), preview=$('preview');
 fCat.innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
 $('fWant').innerHTML=[1,2,3,4,5].map(n=>`<label><input type="radio" name="want" value="${n}" ${n===3?'checked':''}><span>${n}</span></label>`).join('');
@@ -342,7 +400,8 @@ if(!storageOK) document.querySelector('.note').textContent='Этот брауз�
 
 function openForm(){
   form.reset(); photo=''; catTouched=false; lastUrl='';
-  preview.style.backgroundImage=''; fMore.classList.remove('on'); fStatus.textContent='';
+  setPhoto(''); preview.classList.remove('need'); dlg.classList.remove('dragging');
+  fMore.classList.remove('on'); fStatus.textContent='';
   dlg.showModal(); fUrl.focus();
 }
 dlg.querySelector('[data-close]').onclick=()=>dlg.close();
@@ -370,7 +429,12 @@ async function fetchMeta(url){
   if(!r.ok) throw new Error(r.status);
   return r.json();
 }
-function setPhoto(src){photo=src||''; preview.style.backgroundImage=photo?`url("${photo.replace(/"/g,'')}")`:''}
+function setPhoto(src){
+  photo=src||'';
+  preview.style.backgroundImage=photo?`url("${photo.replace(/"/g,'')}")`:'';
+  preview.classList.toggle('has',!!photo);
+  if(photo) preview.classList.remove('need');
+}
 
 async function onUrl(){
   const url=fUrl.value.trim();
@@ -390,8 +454,9 @@ async function onUrl(){
   }catch(err){
     fStatus.textContent=err.message==='local'
       ? 'Автозаполнение заработает, когда сайт будет на хостинге. Пока заполни сама.'
-      : `Не получилось прочитать ${shop||'страницу'} — заполни сама.`;
+      : `${shop||'Магазин'} не даёт прочитать страницу — сделай скриншот товара и вставь его ⌘V, а название и цену впиши сама.`;
   }
+  if(!photo) preview.classList.add('need');
   fTitle.focus();
 }
 fUrl.addEventListener('paste',()=>setTimeout(onUrl,0));
@@ -399,17 +464,36 @@ fUrl.addEventListener('change',onUrl);
 fUrl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!fMore.classList.contains('on')){e.preventDefault();onUrl()}});
 
 // своё фото уменьшаем до 900px, чтобы влезло в память браузера
-fFile.addEventListener('change',()=>{
-  const f=fFile.files[0]; if(!f) return;
+function fileToPhoto(f){
+  if(!f || !/^image\//.test(f.type)) return;
   const img=new Image();
   img.onload=()=>{
     const k=Math.min(1,900/Math.max(img.width,img.height));
-    const c=document.createElement('canvas'); c.width=img.width*k; c.height=img.height*k;
-    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height);
+    ctx.drawImage(img,0,0,c.width,c.height);
     setPhoto(c.toDataURL('image/jpeg',.82));
+    fMore.classList.add('on');
     URL.revokeObjectURL(img.src);
   };
   img.src=URL.createObjectURL(f);
+}
+fFile.addEventListener('change',()=>{fileToPhoto(fFile.files[0]); fFile.value=''});
+
+// скриншот из буфера: ⌘V в любом месте формы
+dlg.addEventListener('paste',e=>{
+  const item=[...(e.clipboardData?.items||[])].find(i=>i.kind==='file'&&i.type.startsWith('image/'));
+  if(!item) return;            // обычный текст (ссылку) вставляем как обычно
+  e.preventDefault();
+  fileToPhoto(item.getAsFile());
+});
+// картинку можно перетащить в окно
+dlg.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files')){e.preventDefault();dlg.classList.add('dragging')}});
+dlg.addEventListener('dragleave',e=>{if(e.target===dlg||!dlg.contains(e.relatedTarget)) dlg.classList.remove('dragging')});
+dlg.addEventListener('drop',e=>{
+  dlg.classList.remove('dragging');
+  const f=[...e.dataTransfer.files].find(f=>f.type.startsWith('image/'));
+  if(f){e.preventDefault();fileToPhoto(f)}
 });
 
 form.addEventListener('submit',e=>{
